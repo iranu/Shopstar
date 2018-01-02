@@ -95,7 +95,7 @@ AUTH_USER_MODEL = 'ecommerce.User'
 AUTHENTICATION_BACKENDS = ('ecommerce.backends.MyAuthBackend','django.contrib.auth.backends.ModelBackend',)
 # Password validation
 # https://docs.djangoproject.com/en/2.0/ref/settings/#auth-password-validators
-
+SECURE_SSL_REDIRECT = True
 
 AUTH_PASSWORD_VALIDATORS = [
     {

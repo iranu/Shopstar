@@ -1,6 +1,11 @@
 from rest_framework import serializers
 from rest_framework.compat import authenticate
 
+from .models import User,Categoryproduct, Product, Producttype, Attributegroup, Attribute
+
+
+from rest_framework import serializers
+
 from .models import User
 
 
@@ -125,6 +130,7 @@ class UserSerializer(serializers.ModelSerializer):
         # we need to remove the password field from the
         # `validated_data` dictionary before iterating over it.
         password = validated_data.pop('password', None)
+        #print(password)
 
         for (key, value) in validated_data.items():
             # For the keys remaining in `validated_data`, we will set them on
@@ -142,3 +148,31 @@ class UserSerializer(serializers.ModelSerializer):
         instance.save()
 
         return instance
+
+
+class CategoryProductSerializer(serializers.ModelSerializer):
+    categoryid = serializers.IntegerField()  # Field name made lowercase.
+    categoryname = serializers.CharField()
+
+    class Meta:
+        model = Categoryproduct
+        fields = ('categoryname','categoryid',)
+
+class ProductSerializer(serializers.ModelSerializer):
+    productid = serializers.IntegerField()  # Field name made lowercase.
+    productcategoryid = serializers.CharField()
+    productname = serializers.CharField ()
+    producttypeid = serializers.CharField ()
+    productdesc = serializers.CharField ()
+
+    class Meta:
+        model = Product
+        fields = ('productid','productname','productdesc','producttypeid','productcategoryid',)
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    """
+    Serializer for password change endpoint.
+    """
+    old_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)

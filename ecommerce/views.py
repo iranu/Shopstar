@@ -2,13 +2,26 @@ from django.shortcuts import render
 
 # Create your views here.
 from rest_framework import status
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.decorators import api_view
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .serializers import RegistrationSerializer,LoginSerializer, UserSerializer
-from .renderers import UserJSONRenderer
-from rest_framework.generics import RetrieveUpdateAPIView
+from .serializers import RegistrationSerializer, LoginSerializer, UserSerializer, CategoryProductSerializer, \
+    ProductSerializer, ChangePasswordSerializer
+from .renderers import UserJSONRenderer, CategoryJSONRenderer
+from rest_framework.generics import RetrieveUpdateAPIView, UpdateAPIView
+from ecommerce.models import Categoryproduct, EcommerceUser, Product, Producttype, Attribute, Attributegroup
+
+
+from rest_framework import status
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from .serializers import RegistrationSerializer
+
 
 class RegistrationAPIView(APIView):
     # Allow any user (authenticated or not) to hit this endpoint.
@@ -26,6 +39,7 @@ class RegistrationAPIView(APIView):
         serializer.save()
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 class LoginAPIView(APIView):
     permission_classes = (AllowAny,)
@@ -69,3 +83,42 @@ class UserRetrieveUpdateAPIView(RetrieveUpdateAPIView):
         serializer.save()
 
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class GetCategroyView (RetrieveUpdateAPIView):
+    permission_classes = (IsAuthenticated,)
+    renderer_classes = (CategoryJSONRenderer,)
+    serializer_class = CategoryProductSerializer
+
+    def get(self, request, *args, **kwargs):
+        category = Categoryproduct.objects.all()
+
+        # Notice here that we do not call `serializer.save()` like we did for
+        # the registration endpoint. This is because we don't  have
+        # anything to save. Instead, the `validate` method on our serializer
+        # handles everything we need.
+        serializer = self.serializer_class (category,many=True)
+        #serializer.is_valid (raise_exception=True)
+
+        return Response (serializer.data, status=status.HTTP_200_OK)
+
+
+class GetProductView (APIView):
+    permission_classes = (AllowAny,)
+    #renderer_classes = (UserJSONRenderer,)
+    serializer_class = ProductSerializer
+
+    def get(self, request):
+        product = Product.objects.all()
+
+        # Notice here that we do not call `serializer.save()` like we did for
+        # the registration endpoint. This is because we don't  have
+        # anything to save. Instead, the `validate` method on our serializer
+        # handles everything we need.
+        serializer = self.serializer_class (product, many=True)
+        #serializer.is_valid (raise_exception=True)
+
+        return Response (serializer.data, status=status.HTTP_200_OK)
+
+
+

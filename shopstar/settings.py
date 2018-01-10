@@ -13,6 +13,10 @@ https://docs.djangoproject.com/en/2.0/ref/settings/
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+import datetime
+
+from django.conf import settings
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -39,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'ecommerce.apps.EcommerceConfig',
     'rest_framework',
+    'rest_framework.authtoken'
 
     ]
 
@@ -72,10 +77,22 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'shopstar.wsgi.application'
 
-REST_FRAMEWORK = {
-    'EXCEPTION_HANDLER': 'ecommerce.exceptions.core_exception_handler',
-    'NON_FIELD_ERRORS_KEY': 'error',
-}
+
+
+
+#REST_FRAMEWORK = {
+   # 'EXCEPTION_HANDLER': 'ecommerce.exceptions.core_exception_handler',
+   # 'NON_FIELD_ERRORS_KEY': 'error',
+   # 'DEFAULT_AUTHENTICATION_CLASSES': (
+   #     'rest_framework.authentication.TokenAuthentication',
+  #      'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+  #  ),
+  #  'DEFAULT_PERMISSION_CLASSES': (
+  #      'rest_framework.permissions.IsAdminUser',
+  #  ),
+#}
+
+
 # Database
 # https://docs.djangoproject.com/en/2.0/ref/settings/#databases
 
@@ -87,19 +104,20 @@ DATABASES = {
         'PASSWORD': 'password',
         'HOST': 'localhost',
         'PORT': '3306',
-    },
-    'server': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'vishwas247$shopstar',
-        'USER': 'root',
-        'PASSWORD': 'password',
-        'HOST': 'localhost',
     }
 }
 
 AUTH_USER_MODEL = 'ecommerce.User'
 
-AUTHENTICATION_BACKENDS = ('ecommerce.backends.MyAuthBackend','django.contrib.auth.backends.ModelBackend',)
+REST_FRAMEWORK = {
+
+
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'ecommerce.backends.JWTAuthentication',
+   ),
+}
+
+#AUTHENTICATION_BACKENDS = ('ecommerce.backends.JWTAuthentication','django.contrib.auth.backends.ModelBackend',)
 # Password validation
 # https://docs.djangoproject.com/en/2.0/ref/settings/#auth-password-validators
 
@@ -141,3 +159,4 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 TEMPLATE_DIRS = (os.path.join(BASE_DIR,  'templates'),)
+

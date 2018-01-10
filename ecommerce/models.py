@@ -101,12 +101,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     def token(self):
         """
         Allows us to get a user's token by calling `user.token` instead of
-        `user.generate_jwt_token().
+        user.generate_jwt_token().
 
         The `@property` decorator above makes this possible. `token` is called
         a "dynamic property".
         """
-        return self._generate_jwt_token()
+        return self._generate_jwt_token ()
 
     def get_full_name(self):
         """
@@ -138,6 +138,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
         return token.decode('utf-8')
 
+
 class Star(models.Model):
     jazz = models.CharField
 
@@ -153,8 +154,12 @@ from django.db import models
 
 
 class Attribute(models.Model):
-    attributeid = models.ForeignKey('Attributegroup', models.DO_NOTHING, db_column='attributeId', primary_key=True)  # Field name made lowercase.
+    attributeid = models.IntegerField(db_column='attributeId', primary_key=True)  # Field name made lowercase.
     attributename = models.CharField(db_column='attributeName', max_length=200, blank=True, null=True)  # Field name made lowercase.
+
+    def __str__(self):
+
+        return self.attributename
 
     class Meta:
         managed = False
@@ -164,7 +169,11 @@ class Attribute(models.Model):
 class Attributegroup(models.Model):
     attributegroupid = models.IntegerField(db_column='attributeGroupId', primary_key=True)  # Field name made lowercase.
     attributegroupname = models.CharField(db_column='attributeGroupName', max_length=45, blank=True, null=True)  # Field name made lowercase.
-    attributeid = models.IntegerField(db_column='attributeId')  # Field name made lowercase.
+    attributeid = models.ForeignKey (Attribute, models.DO_NOTHING, db_column='attributeId')  # Field name made lowercase.
+
+    def __str__(self):
+
+        return self.attributegroupname
 
     class Meta:
         managed = False
@@ -172,8 +181,12 @@ class Attributegroup(models.Model):
 
 
 class Categoryproduct(models.Model):
-    categoryid = models.ForeignKey('Product', models.DO_NOTHING, db_column='CategoryId', primary_key=True)  # Field name made lowercase.
+    categoryid = models.AutoField(db_column='CategoryId', primary_key=True)  # Field name made lowercase.
     categoryname = models.CharField(db_column='CategoryName', max_length=200)  # Field name made lowercase.
+
+    def __str__(self):
+
+        return self.categoryname
 
     class Meta:
         managed = False
@@ -181,13 +194,17 @@ class Categoryproduct(models.Model):
 
 
 class Order(models.Model):
-    orderid = models.ForeignKey('Orderdetail', models.DO_NOTHING, db_column='orderId', primary_key=True)  # Field name made lowercase.
-    orderuserid = models.IntegerField(db_column='orderUserId')  # Field name made lowercase.
+    orderid = models.IntegerField(db_column='orderId', primary_key=True)  # Field name made lowercase.
+    orderuserid = models.ForeignKey('EcommerceUser', models.DO_NOTHING, db_column='orderUserId')  # Field name made lowercase.
     orderamount = models.IntegerField(db_column='orderAmount', blank=True, null=True)  # Field name made lowercase.
     ordertrackingnumber = models.IntegerField(db_column='orderTrackingNumber', blank=True, null=True)  # Field name made lowercase.
     orderaddress = models.CharField(db_column='OrderAddress', max_length=200, blank=True, null=True)  # Field name made lowercase.
     orderemail = models.CharField(db_column='orderEmail', max_length=45, blank=True, null=True)  # Field name made lowercase.
     orderdate = models.DateField(db_column='orderDate', blank=True, null=True)  # Field name made lowercase.
+
+    def __str__(self):
+
+        return 'Orderid=' + str(self.orderid)
 
     class Meta:
         managed = False
@@ -196,35 +213,45 @@ class Order(models.Model):
 
 class Orderdetail(models.Model):
     detaild = models.IntegerField(primary_key=True)
-    detailorderid = models.IntegerField(db_column='detailOrderId')  # Field name made lowercase.
-    detailproductid = models.IntegerField(db_column='detailProductId')  # Field name made lowercase.
+    detailorderid = models.ForeignKey(Order, models.DO_NOTHING, db_column='detailOrderId')  # Field name made lowercase.
+    detailproductid = models.ForeignKey('Product', models.DO_NOTHING, db_column='detailProductId')  # Field name made lowercase.
+
+    def __str__(self):
+
+        return 'Detailid=' + str(self.detaild)
 
     class Meta:
         managed = False
         db_table = 'OrderDetail'
+
+class Producttype(models.Model):
+    typeid = models.AutoField(db_column='typeId', primary_key=True)  # Field name made lowercase.
+    producttypename = models.CharField(db_column='productTypeName', max_length=200)  # Field name made lowercase.
+    attributegroupid = models.ForeignKey(Attributegroup, models.DO_NOTHING, db_column='attributeGroupId')  # Field name made lowercase.
+
+    def __str__(self):
+        return 'Producttypeid=' + str(self.typeid)
+
+    class Meta:
+        managed = False
+        db_table = 'ProductType'
 
 
 class Product(models.Model):
     productid = models.AutoField(db_column='productId', primary_key=True)  # Field name made lowercase.
     productname = models.CharField(db_column='productName', max_length=200)  # Field name made lowercase.
     productdesc = models.CharField(db_column='productDesc', max_length=45, blank=True, null=True)  # Field name made lowercase.
-    productcategoryid = models.IntegerField(db_column='productCategoryId')  # Field name made lowercase.
-    producttypeid = models.IntegerField(db_column='productTypeId')  # Field name made lowercase.
+    productcategoryid = models.ForeignKey(Categoryproduct, models.DO_NOTHING, db_column='productCategoryId')  # Field name made lowercase.
+    producttypeid = models.ForeignKey(Producttype, models.DO_NOTHING, db_column='productTypeId')  # Field name made lowercase.
+    productimage = models.TextField (db_column='productImage', blank=True, null=True)  # Field name made lowercase.
+    productprice = models.CharField (db_column='productPrice', max_length=200, blank=True, null=True)
+
+    def __str__(self):
+        return self.productname
 
     class Meta:
         managed = False
         db_table = 'Product'
-
-
-class Producttype(models.Model):
-    typeid = models.ForeignKey(Product, models.DO_NOTHING, db_column='typeId', primary_key=True)  # Field name made lowercase.
-    producttypename = models.CharField(db_column='productTypeName', max_length=200)  # Field name made lowercase.
-    attributegroupid = models.IntegerField(db_column='attributeGroupId')  # Field name made lowercase.
-
-    class Meta:
-        managed = False
-        db_table = 'ProductType'
-
 
 class AuthGroup(models.Model):
     name = models.CharField(unique=True, max_length=80)
@@ -297,13 +324,6 @@ class DjangoSession(models.Model):
     class Meta:
         managed = False
         db_table = 'django_session'
-
-
-class EcommerceStar(models.Model):
-
-    class Meta:
-        managed = False
-        db_table = 'ecommerce_star'
 
 
 class EcommerceUser(models.Model):

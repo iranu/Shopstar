@@ -104,6 +104,14 @@ DATABASES = {
         'PASSWORD': 'password',
         'HOST': 'localhost',
         'PORT': '3306',
+    },
+        {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'Shopstar',
+        'USER': 'root',
+        'PASSWORD': 'password',
+        'HOST': '/Applications/MAMP/tmp/mysql.sock',
+        'PORT': '',
     }
 }
 

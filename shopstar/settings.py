@@ -29,7 +29,7 @@ SECRET_KEY = '4w)-iwy5!wu*f+9zl*iv0l(o4bhh#pkcte7*njfyl1-$7tt)s8'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['havannashop.heroku.com']
+ALLOWED_HOSTS = ['havannashop.herokuapp.com','shopstar.herokuapp.com']
 
 
 # Application definition

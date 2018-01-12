@@ -1,12 +1,8 @@
 from rest_framework import serializers
 from rest_framework.compat import authenticate
 
-from .models import User,Categoryproduct, Product, Producttype, Attributegroup, Attribute
-
-
-from rest_framework import serializers
-
-from .models import User
+from ecommerce.models import Categoryproduct, Product, Profile
+from ecommerce.models import User
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
@@ -33,6 +29,8 @@ class RegistrationSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         # Use the `create_user` method we wrote earlier to create a new user.
         return User.objects.create_user(**validated_data)
+
+
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.CharField(max_length=255)
@@ -94,6 +92,23 @@ class LoginSerializer(serializers.Serializer):
             'token': user.token
         }
 
+
+class ProfileSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username')
+    bio = serializers.CharField(allow_blank=True, required=False)
+    image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Profile
+        fields = ('username', 'bio', 'image',)
+        read_only_fields = ('username',)
+
+    def get_image(self, obj):
+        if obj.image:
+            return obj.image
+
+        return 'https://static.productionready.io/images/smiley-cyrus.jpg'
+
 class UserSerializer(serializers.ModelSerializer):
     """Handles serialization and deserialization of User objects."""
 
@@ -107,10 +122,22 @@ class UserSerializer(serializers.ModelSerializer):
         write_only=True
     )
 
+    # When a field should be handled as a serializer, we must explicitly say
+      # so. Moreover, `UserSerializer` should never expose profile information,
+      # so we set `write_only=True`.
+    profile = ProfileSerializer (write_only=True)
+
+      # We want to get the `bio` and `image` fields from the related Profile
+      # model.
+    bio = serializers.CharField (source='profile.bio', read_only=True)
+    image = serializers.CharField (source='profile.image', read_only=True)
+
     class Meta:
         model = User
-        fields = ('email', 'username', 'password', 'token',)
-
+        fields = (
+                        'email', 'username', 'password', 'token', 'profile', 'bio',
+                        'image',
+            )
         # The `read_only_fields` option is an alternative for explicitly
         # specifying the field with `read_only=True` like we did for password
         # above. The reason we want to use `read_only_fields` here is that
@@ -130,7 +157,9 @@ class UserSerializer(serializers.ModelSerializer):
         # we need to remove the password field from the
         # `validated_data` dictionary before iterating over it.
         password = validated_data.pop('password', None)
-        #print(password)
+        profile_data = validated_data.pop ('profile', {})
+
+        print(password)
 
         for (key, value) in validated_data.items():
             # For the keys remaining in `validated_data`, we will set them on
@@ -147,8 +176,16 @@ class UserSerializer(serializers.ModelSerializer):
         # save the model.
         instance.save()
 
-        return instance
+        for (key, value) in profile_data.items ():
 
+      # We're doing the same thing as above, but this time we're making
+      # changes to the Profile model.
+            setattr (instance.profile, key, value)
+
+      # Save the profile just like we saved the user.
+        instance.profile.save ()
+
+        return instance
 
 class CategoryProductSerializer(serializers.ModelSerializer):
     categoryid = serializers.IntegerField()  # Field name made lowercase.
@@ -170,9 +207,28 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = ('productid','productname','productdesc','producttypeid','productcategoryid',)
 
 
-class ChangePasswordSerializer(serializers.Serializer):
-    """
-    Serializer for password change endpoint.
-    """
-    old_password = serializers.CharField(required=True)
-    new_password = serializers.CharField(required=True)
+class NewUserSerializer(serializers.ModelSerializer):
+    profile = ProfileSerializer(required=True)
+    class Meta:
+        model = User
+        fields = ( 'email', 'profile', 'created',)
+
+    def create(self, validated_data):
+
+        # create user
+        user = User.objects.create(
+            url = validated_data['url'],
+            email = validated_data['email'],
+            # etc ...
+        )
+
+        profile_data = validated_data.pop('profile')
+        # create profile
+        profile = Profile.objects.create(
+            user = user,
+            first_name = profile_data['first_name'],
+            last_name = profile_data['last_name'],
+            # etc...
+        )
+
+        return user

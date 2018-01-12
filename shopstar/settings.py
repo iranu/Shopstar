@@ -113,7 +113,7 @@ REST_FRAMEWORK = {
 
 
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'ecommerce.backends.JWTAuthentication',
+        'ecommerce.backend.backends.JWTAuthentication',
    ),
 }
 

@@ -168,10 +168,10 @@ class DjangoSession(models.Model):
 
 
 class EcommerceProfile(models.Model):
-    bio = models.TextField()
-    image = models.CharField(max_length=200)
     created_at = models.DateTimeField()
     updated_at = models.DateTimeField()
+    bio = models.TextField()
+    image = models.CharField(max_length=200)
     user = models.ForeignKey('EcommerceUser', models.DO_NOTHING, unique=True)
 
     class Meta:

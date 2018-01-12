@@ -8,6 +8,9 @@ from django.contrib.auth.models import (
     AbstractBaseUser, BaseUserManager, PermissionsMixin
 )
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
 
 class UserManager(BaseUserManager):
     """
@@ -47,7 +50,32 @@ class UserManager(BaseUserManager):
 
         return user
 
-class User(AbstractBaseUser, PermissionsMixin):
+    def create_related_profile(sender, instance, created, *args, **kwargs):
+        # Notice that we're checking for `created` here. We only want to do this
+        # the first time the `User` instance is created. If the save that caused
+        # this signal to be run was an update action, we know the user already
+        # has a profile.
+        if instance and created:
+            instance.profile = Profile.objects.create (user=instance)
+
+class TimestampedModel(models.Model):
+    # A timestamp representing when this object was created.
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    # A timestamp reprensenting when this object was last updated.
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+
+        # By default, any model that inherits from `TimestampedModel` should
+        # be ordered in reverse-chronological order. We can override this on a
+        # per-model basis as needed, but reverse-chronological is a good
+        # default ordering for most models.
+        #ordering = ['-created_at', '-updated_at’]
+
+
+class User(AbstractBaseUser, PermissionsMixin, TimestampedModel):
     # Each `User` needs a human-readable unique identifier that we can use to
     # represent the `User` in the UI. We want to index this column in the
     # database to improve lookup performance.
@@ -71,12 +99,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     # log into the Django admin site. For most users this flag will always be
     # false.
     is_staff = models.BooleanField(default=False)
-
-    # A timestamp representing when this object was created.
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    # A timestamp reprensenting when this object was last updated.
-    updated_at = models.DateTimeField(auto_now=True)
 
     # More fields required by Django when specifying a custom user model.
 
@@ -281,7 +303,6 @@ class AuthPermission(models.Model):
         db_table = 'auth_permission'
         unique_together = (('content_type', 'codename'),)
 
-
 class DjangoAdminLog(models.Model):
     action_time = models.DateTimeField()
     object_id = models.TextField(blank=True, null=True)
@@ -341,6 +362,16 @@ class EcommerceUser(models.Model):
         managed = False
         db_table = 'ecommerce_user'
 
+class EcommerceProfile(models.Model):
+    created_at = models.DateTimeField()
+    updated_at = models.DateTimeField()
+    bio = models.TextField()
+    image = models.CharField(max_length=200)
+    user = models.OneToOneField('EcommerceUser', models.DO_NOTHING, unique=True)
+
+    class Meta:
+        managed = False
+        db_table = 'ecommerce_profile'
 
 class EcommerceUserGroups(models.Model):
     user = models.ForeignKey(EcommerceUser, models.DO_NOTHING)
@@ -362,23 +393,6 @@ class EcommerceUserUserPermissions(models.Model):
         unique_together = (('user', 'permission'),)
 
 
-class TimestampedModel(models.Model):
-    # A timestamp representing when this object was created.
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    # A timestamp reprensenting when this object was last updated.
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        abstract = True
-
-        # By default, any model that inherits from `TimestampedModel` should
-        # be ordered in reverse-chronological order. We can override this on a
-        # per-model basis as needed, but reverse-chronological is a good
-        # default ordering for most models.
-        #ordering = ['-created_at', '-updated_at’]
-
-
 class Profile(TimestampedModel):
     # As mentioned, there is an inherent relationship between the Profile and
     # User models. By creating a one-to-one relationship between the two, we
@@ -397,11 +411,14 @@ class Profile(TimestampedModel):
     # avatar. This field is not required and it may be blank.
     image = models.URLField(blank=True)
 
-    # A timestamp representing when this object was created.
-    created_at = models.DateTimeField(auto_now_add=True)
+    @receiver (post_save, sender=User)
+    def create_user_profile(sender, instance, created, **kwargs):
+        if created:
+            Profile.objects.create (user=instance)
 
-    # A timestamp reprensenting when this object was last updated.
-    updated_at = models.DateTimeField(auto_now=True)
+    @receiver (post_save, sender=User)
+    def save_user_profile(sender, instance, **kwargs):
+        instance.profile.save ()
 
     def __str__(self):
         return self.user.username

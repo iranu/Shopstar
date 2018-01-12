@@ -1,26 +1,18 @@
-from django.shortcuts import render
-
 # Create your views here.
+from rest_framework import generics
 from rest_framework import status
-from rest_framework.authentication import TokenAuthentication
-from rest_framework.decorators import api_view
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
-from rest_framework.response import Response
-from rest_framework.views import APIView
-
-from .serializers import RegistrationSerializer, LoginSerializer, UserSerializer, CategoryProductSerializer, \
-    ProductSerializer, ChangePasswordSerializer
-from .renderers import UserJSONRenderer, CategoryJSONRenderer
-from rest_framework.generics import RetrieveUpdateAPIView, UpdateAPIView
-from ecommerce.models import Categoryproduct, EcommerceUser, Product, Producttype, Attribute, Attributegroup
-
-
-from rest_framework import status
+from rest_framework.generics import RetrieveUpdateAPIView, RetrieveAPIView
 from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .serializers import RegistrationSerializer
+from ecommerce.Exceptions.exceptions import ProfileDoesNotExist
+from ecommerce.Exceptions.renderers import UserJSONRenderer, CategoryJSONRenderer, ProfileJSONRenderer
+from ecommerce.models import Categoryproduct, Product, Profile
+from ecommerce.Serializers.serializers import LoginSerializer, UserSerializer, CategoryProductSerializer, \
+    ProductSerializer, ProfileSerializer
+from ecommerce.Serializers.serializers import RegistrationSerializer
 
 
 class RegistrationAPIView(APIView):
@@ -72,8 +64,15 @@ class UserRetrieveUpdateAPIView(RetrieveUpdateAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def update(self, request, *args, **kwargs):
-        serializer_data = request.data.get('user', {})
+        user_data = request.data.get ('user', {})
 
+        serializer_data = {
+        'username': user_data.get('username', request.user.username),
+        'email': user_data.get('email', request.user.email),
+        'profile': {'bio': user_data.get('bio', request.user.profile.bio),
+        'image': user_data.get('image', request.user.profile.image)
+        }
+        }
         # Here is that serialize, validate, save pattern we talked about
         # before.
         serializer = self.serializer_class(
@@ -81,6 +80,28 @@ class UserRetrieveUpdateAPIView(RetrieveUpdateAPIView):
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class ProfileRetrieveAPIView(RetrieveAPIView):
+    permission_classes = (AllowAny,)
+    renderer_classes = (ProfileJSONRenderer,)
+    serializer_class = ProfileSerializer
+
+    def retrieve(self, request, username, *args, **kwargs):
+        print(username)
+        # Try to retrieve the requested profile and throw an exception if the
+        # profile could not be found.
+        try:
+            # We use the `select_related` method to avoid making unnecessary
+            # database calls.
+            profile = Profile.objects.select_related('user').get(
+                user__username=username
+            )
+        except Profile.DoesNotExist:
+            raise ProfileDoesNotExist
+
+        serializer = self.serializer_class(profile)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -121,4 +142,13 @@ class GetProductView (APIView):
         return Response (serializer.data, status=status.HTTP_200_OK)
 
 
+class UserList(generics.ListCreateAPIView):
+    permission_classes = (AllowAny,)
+    serializer_class = UserSerializer
 
+    def post(self, request, *args, **kwargs):
+        serializer = UserSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -29,7 +29,7 @@ SECRET_KEY = '4w)-iwy5!wu*f+9zl*iv0l(o4bhh#pkcte7*njfyl1-$7tt)s8'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['havannashop.heroku.com']
 
 
 # Application definition
@@ -160,3 +160,5 @@ STATIC_URL = '/static/'
 
 TEMPLATE_DIRS = (os.path.join(BASE_DIR,  'templates'),)
 
+PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_ROOT = os.path.join(PROJECT_DIR, 'static')
